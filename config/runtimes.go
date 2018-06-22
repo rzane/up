@@ -21,6 +21,7 @@ const (
 	RuntimeStatic             = "static"
 	RuntimeJavaMaven          = "java maven"
 	RuntimeJavaGradle         = "java gradle"
+	RuntimeElixir             = "elixir"
 )
 
 // inferRuntime returns the runtime based on files present in the CWD.
@@ -30,6 +31,8 @@ func inferRuntime() Runtime {
 		return RuntimeGo
 	case util.Exists("main.cr"):
 		return RuntimeCrystal
+	case util.Exists("mix.exs"):
+		return RuntimeElixir
 	case util.Exists("package.json"):
 		return RuntimeNode
 	case util.Exists("app.js"):
@@ -64,6 +67,8 @@ func runtimeConfig(runtime Runtime, c *Config) error {
 		crystal(c)
 	case RuntimePython:
 		python(c)
+	case RuntimeElixir:
+		elixir(c)
 	case RuntimeStatic:
 		c.Type = "static"
 	case RuntimeNode:
@@ -220,5 +225,26 @@ func python(c *Config) {
 	// Clean .pypath/
 	if c.Hooks.Clean.IsEmpty() {
 		c.Hooks.Clean = Hook{`rm -r .pypath/`}
+	}
+}
+
+// elixir config.
+func elixir(c *Config) {
+	if c.Hooks.Build.IsEmpty() {
+		c.Hooks.Build = Hook{`docker run --rm -v $(pwd):/src -w /src -e MIX_ENV=prod rzane/up-elixir build-release`}
+	}
+
+	if c.Hooks.Clean.IsEmpty() {
+		c.Hooks.Clean = Hook{`rm -r server`}
+	}
+
+	if c.Proxy.Command == "" {
+		c.Proxy.Command = "server/up"
+	}
+
+	if s := c.Stages.GetByName("development"); s != nil {
+		if s.Proxy.Command == "" {
+			s.Proxy.Command = "mix run --no-halt"
+		}
 	}
 }
