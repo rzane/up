@@ -239,7 +239,7 @@ func elixir(c *Config) {
 	}
 
 	if c.Proxy.Command == "" {
-		c.Proxy.Command = "server/up"
+		c.Proxy.Command = "server/up-start"
 	}
 
 	if s := c.Stages.GetByName("development"); s != nil {
