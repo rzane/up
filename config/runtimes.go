@@ -234,17 +234,24 @@ func elixir(c *Config) {
 		c.Hooks.Build = Hook{`docker run --rm -v $(pwd):/src -w /src -e MIX_ENV=prod rzane/up-elixir build-release`}
 	}
 
-	if c.Hooks.Clean.IsEmpty() {
-		c.Hooks.Clean = Hook{`rm -r server`}
-	}
-
 	if c.Proxy.Command == "" {
-		c.Proxy.Command = "server/up-start"
+		c.Proxy.Command = "server.run foreground"
 	}
 
 	if s := c.Stages.GetByName("development"); s != nil {
 		if s.Proxy.Command == "" {
 			s.Proxy.Command = "mix run --no-halt"
 		}
+	}
+
+	// Distillery is going to expand create files when the application boots, which
+	// will cause permission issues. So, we need to create files in /tmp
+	if c.Environment == nil {
+		c.Environment = Environment{}
+	}
+	c.Environment["RELEASE_MUTABLE_DIR"] = "/tmp"
+
+	if c.Hooks.Clean.IsEmpty() {
+		c.Hooks.Clean = Hook{`rm server.run`}
 	}
 }
